@@ -1,0 +1,64 @@
+import torch
+import torch.nn as nn
+from torchvision.models import resnet50, ResNet50_Weights
+
+
+class ResnetFeatures(nn.Module):
+    """Extracts intermediate feature maps from a pretrained ResNet50."""
+
+    def __init__(self):
+        super().__init__()
+        self.model = resnet50(weights=ResNet50_Weights.DEFAULT)
+        self.model.eval()
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        def hook(module, input, output) -> None:
+            self.features.append(output)
+
+        self.model.layer2[-1].register_forward_hook(hook)
+        self.model.layer3[-1].register_forward_hook(hook)
+
+    def forward(self, x):
+        self.features = []
+        with torch.no_grad():
+            _ = self.model(x)
+
+        avg = nn.AvgPool2d(3, stride=1)
+        fmap_size = self.features[0].shape[-2]
+        resize = nn.AdaptiveAvgPool2d(fmap_size)
+
+        resized_maps = [resize(avg(fmap)) for fmap in self.features]
+        patch = torch.cat(resized_maps, dim=1)
+        return patch
+
+
+class AutoEncoder(nn.Module):
+    """1x1 Conv AutoEncoder for patch-level anomaly detection."""
+
+    def __init__(self, in_channels: int = 1000, latent_dim: int = 50, is_bn: bool = True):
+        super().__init__()
+
+        mid = (in_channels + 2 * latent_dim) // 2
+
+        def conv_block(c_in, c_out, use_bn):
+            layers = [nn.Conv2d(c_in, c_out, kernel_size=1)]
+            if use_bn:
+                layers.append(nn.BatchNorm2d(c_out))
+            layers.append(nn.ReLU())
+            return layers
+
+        self.encoder = nn.Sequential(
+            *conv_block(in_channels, mid, is_bn),
+            *conv_block(mid, 2 * latent_dim, is_bn),
+            nn.Conv2d(2 * latent_dim, latent_dim, kernel_size=1),
+        )
+
+        self.decoder = nn.Sequential(
+            *conv_block(latent_dim, 2 * latent_dim, is_bn),
+            *conv_block(2 * latent_dim, mid, is_bn),
+            nn.Conv2d(mid, in_channels, kernel_size=1),
+        )
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))

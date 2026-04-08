@@ -66,6 +66,37 @@ The pipeline will:
 
 ---
 
+## Generated Plots
+
+All plots are saved to the `plots/` directory after each run.
+
+### Learning Curves
+Training and validation reconstruction loss per epoch.
+
+![Learning Curves](plots/learning_curves.png)
+
+### Threshold Distribution
+Histogram of training anomaly scores with the decision threshold (`mean + 3σ`) marked in red.
+
+![Threshold Distribution](plots/threshold_distribution.png)
+
+### ROC Curve
+Receiver Operating Characteristic curve with AUC score on the test set.
+
+![ROC Curve](plots/roc_curve.png)
+
+### Confusion Matrix
+Predicted vs. actual labels at the F1-optimal threshold.
+
+![Confusion Matrix](plots/confusion_matrix.png)
+
+### Anomaly Heatmaps
+Per-image side-by-side view of the original abnormal image and its reconstruction error heatmap. One file is saved per bad test image: `plots/heatmap_<filename>.png`.
+
+![Heatmap Example](plots/heatmap_example.png)
+
+---
+
 ## Configuration
 
 All settings are in [config.py](config.py):

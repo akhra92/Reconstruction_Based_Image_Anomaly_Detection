@@ -1,6 +1,11 @@
 import torch
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+if torch.cuda.is_available():
+    DEVICE = 'cuda'
+elif torch.backends.mps.is_available():
+    DEVICE = 'mps'
+else:
+    DEVICE = 'cpu'
 
 # Dataset
 TRAIN_DATA_PATH = 'dataset/train'

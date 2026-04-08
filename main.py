@@ -3,11 +3,11 @@ warnings.filterwarnings('ignore')
 
 import torch
 
-from anomaly_detection import config
-from anomaly_detection.dataset import get_dataloaders
-from anomaly_detection.models import AutoEncoder, ResnetFeatures
-from anomaly_detection.train import train, plot_learning_curves
-from anomaly_detection.evaluate import (
+import config
+from dataset import get_dataloaders
+from models import AutoEncoder, ResnetFeatures
+from train import train, plot_learning_curves
+from evaluate import (
     compute_threshold,
     predict,
     plot_roc_and_confusion,

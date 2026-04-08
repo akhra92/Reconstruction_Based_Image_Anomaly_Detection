@@ -2,7 +2,7 @@ import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader, random_split
 
-from anomaly_detection import config
+import config
 
 
 def get_transform():

@@ -5,7 +5,7 @@ from torch import optim
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-from anomaly_detection import config
+import config
 
 
 def train(model, feat_extractor, train_loader, val_loader):

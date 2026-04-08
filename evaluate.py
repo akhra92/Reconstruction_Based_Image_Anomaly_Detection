@@ -10,8 +10,8 @@ from sklearn.metrics import (
     confusion_matrix, ConfusionMatrixDisplay, f1_score,
 )
 
-from anomaly_detection import config
-from anomaly_detection.dataset import get_transform
+import config
+from dataset import get_transform
 
 
 # ---------------------------------------------------------------------------

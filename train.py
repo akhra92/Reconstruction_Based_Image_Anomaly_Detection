@@ -63,6 +63,9 @@ def train(model, feat_extractor, train_loader, val_loader):
 
 
 def plot_learning_curves(train_losses, val_losses):
+    from pathlib import Path
+    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
+
     plt.plot(train_losses, label='Training Loss')
     plt.plot(val_losses, label='Validation Loss')
     plt.xlabel('Epoch')
@@ -70,4 +73,5 @@ def plot_learning_curves(train_losses, val_losses):
     plt.legend()
     plt.title('Learning Curves')
     plt.tight_layout()
+    plt.savefig(f'{config.PLOTS_DIR}/learning_curves.png', dpi=150)
     plt.show()

@@ -18,6 +18,9 @@ env/
 dataset/
 *.pth
 
+# Generated plots
+plots/
+
 # Jupyter
 .ipynb_checkpoints/
 

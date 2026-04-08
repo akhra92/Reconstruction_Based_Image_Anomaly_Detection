@@ -34,6 +34,9 @@ def decision_function(segm_map: torch.Tensor) -> torch.Tensor:
 
 def compute_threshold(model, feat_extractor, train_loader):
     """Estimate anomaly threshold as mean + 3*std over training reconstruction errors."""
+    from pathlib import Path
+    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
+
     model.eval()
     feat_extractor.eval()
     all_scores = []
@@ -55,6 +58,7 @@ def compute_threshold(model, feat_extractor, train_loader):
     plt.title('Training Reconstruction Error Distribution')
     plt.legend()
     plt.tight_layout()
+    plt.savefig(f'{config.PLOTS_DIR}/threshold_distribution.png', dpi=150)
     plt.show()
 
     return threshold, recon_errors
@@ -100,6 +104,9 @@ def plot_roc_and_confusion(y_true, y_score):
 
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
 
+    from pathlib import Path
+    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
+
     plt.figure()
     plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC (AUC = {auc:.2f})')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -108,6 +115,7 @@ def plot_roc_and_confusion(y_true, y_score):
     plt.title('ROC Curve')
     plt.legend(loc='lower right')
     plt.tight_layout()
+    plt.savefig(f'{config.PLOTS_DIR}/roc_curve.png', dpi=150)
     plt.show()
 
     f1_scores = [f1_score(y_true, y_score >= t) for t in thresholds]
@@ -118,6 +126,7 @@ def plot_roc_and_confusion(y_true, y_score):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Normal', 'Abnormal'])
     disp.plot()
     plt.tight_layout()
+    plt.savefig(f'{config.PLOTS_DIR}/confusion_matrix.png', dpi=150)
     plt.show()
 
     return best_threshold
@@ -156,4 +165,5 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             plt.title(f'Heatmap  |  Score ratio: {score[0].item() / best_threshold:.4f}')
 
             plt.tight_layout()
+            plt.savefig(f'{config.PLOTS_DIR}/heatmap_{path.stem}.png', dpi=150)
             plt.show()

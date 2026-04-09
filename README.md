@@ -53,6 +53,8 @@ pip install -r requirements.txt
 
 ## Usage
 
+### CLI (training + evaluation)
+
 ```bash
 python main.py
 ```
@@ -62,7 +64,40 @@ The pipeline will:
 2. Save the best checkpoint to `AE_ResNet50.pth`
 3. Calibrate the anomaly threshold on training reconstruction errors
 4. Evaluate on `dataset/test/` and report AUC-ROC + confusion matrix
-5. Display heatmaps highlighting anomalous regions in bad images
+5. Save the F1-optimal threshold to `threshold.npy`
+6. Display heatmaps highlighting anomalous regions in bad images
+
+### Streamlit App (local)
+
+```bash
+streamlit run app.py
+```
+
+Upload images in the browser to get anomaly scores, heatmaps, and Normal/Abnormal predictions interactively.
+
+---
+
+## Deployment (Streamlit Cloud)
+
+1. **Train locally** to produce the model and threshold:
+   ```bash
+   python main.py
+   ```
+
+2. **Commit the model files** (they are git-tracked by exception):
+   ```bash
+   git add AE_ResNet50.pth threshold.npy
+   git commit -m "add trained model and threshold"
+   git push
+   ```
+
+3. **Deploy on Streamlit Cloud:**
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Click **New app** → select your GitHub repo
+   - Set **Main file path** to `app.py`
+   - Click **Deploy**
+
+Streamlit Cloud will install `requirements.txt` and `packages.txt` automatically.
 
 ---
 

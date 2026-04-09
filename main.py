@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore')
 
+import numpy as np
 import torch
 
 import config
@@ -55,6 +56,8 @@ def main():
     # ------------------------------------------------------------------ #
     y_true, y_pred, y_score = predict(model, feat_extractor, threshold)
     best_threshold = plot_roc_and_confusion(y_true, y_score)
+    np.save('threshold.npy', np.array(best_threshold))
+    print(f'Threshold saved to threshold.npy')
 
     # ------------------------------------------------------------------ #
     # 7. Visualize heatmaps for abnormal images

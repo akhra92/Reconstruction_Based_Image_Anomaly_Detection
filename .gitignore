@@ -17,6 +17,8 @@ env/
 # Dataset & model weights
 dataset/
 *.pth
+!AE_ResNet50.pth
+!threshold.npy
 
 # Generated plots
 plots/

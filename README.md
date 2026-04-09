@@ -17,13 +17,17 @@ Unsupervised anomaly detection using a **ResNet50 feature extractor** and a **1�
 
 ```
 Anomaly_Detection/
-├── main.py          # Entry point — runs the full pipeline
-├── config.py        # All hyperparameters and paths
-├── dataset.py       # Transform and DataLoader factory
-├── models.py        # ResnetFeatures and AutoEncoder
-├── train.py         # Training loop with early stopping
-├── evaluate.py      # Threshold calibration, inference, metrics, heatmaps
-└── requirements.txt
+├── main.py                   # CLI entry point — trains and evaluates the model
+├── app.py                    # Streamlit web app for interactive inference
+├── config.py                 # All hyperparameters and paths
+├── dataset.py                # Transform and DataLoader factory
+├── models.py                 # ResnetFeatures and AutoEncoder
+├── train.py                  # Training loop with early stopping
+├── evaluate.py               # Threshold calibration, inference, metrics, heatmaps
+├── requirements.txt          # Python dependencies
+├── packages.txt              # System dependencies for Streamlit Cloud
+└── .streamlit/
+    └── config.toml           # Streamlit theme and upload size config
 ```
 
 ---
@@ -138,6 +142,7 @@ All settings are in [config.py](config.py):
 
 | Parameter | Default | Description |
 |---|---|---|
+| `DEVICE` | auto | `cuda` → `mps` → `cpu` (auto-detected) |
 | `IMAGE_SIZE` | 224 | Input image size |
 | `BATCH_SIZE` | 4 | Training batch size |
 | `VAL_SPLIT` | 0.2 | Fraction of training data used for validation |
@@ -147,3 +152,4 @@ All settings are in [config.py](config.py):
 | `LEARNING_RATE` | 0.001 | Adam optimizer learning rate |
 | `EARLY_STOP_PATIENCE` | 5 | Epochs without improvement before stopping |
 | `MODEL_SAVE_PATH` | `AE_ResNet50.pth` | Checkpoint file path |
+| `PLOTS_DIR` | `plots` | Directory where all plots are saved |

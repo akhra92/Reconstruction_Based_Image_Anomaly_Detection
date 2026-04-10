@@ -82,7 +82,6 @@ Upload images in the browser to get anomaly scores, heatmaps, and Normal/Abnorma
 
 You can also try the demo of the project through this link in streamlit cloud [Link](https://share.streamlit.io)
 
-
 ---
 
 ## Generated Plots

@@ -71,7 +71,7 @@ The pipeline will:
 5. Save the F1-optimal threshold to `threshold.npy`
 6. Display heatmaps highlighting anomalous regions in bad images
 
-### Streamlit App (local)
+### Streamlit App (Local)
 
 ```bash
 streamlit run app.py
@@ -79,9 +79,7 @@ streamlit run app.py
 
 Upload images in the browser to get anomaly scores, heatmaps, and Normal/Abnormal predictions interactively.
 
-
-You can also try the demo of the project through this link in streamlit cloud [Link](https://share.streamlit.io)
-
+You can also try a live demo of the project on Streamlit Cloud: [Demo Link](https://share.streamlit.io)
 ---
 
 ## Generated Plots

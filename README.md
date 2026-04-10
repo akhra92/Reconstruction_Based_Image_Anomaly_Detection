@@ -79,29 +79,9 @@ streamlit run app.py
 
 Upload images in the browser to get anomaly scores, heatmaps, and Normal/Abnormal predictions interactively.
 
----
 
-## Deployment (Streamlit Cloud)
+You can also try the demo of the project through this link in streamlit cloud [Link](https://share.streamlit.io)
 
-1. **Train locally** to produce the model and threshold:
-   ```bash
-   python main.py
-   ```
-
-2. **Commit the model files** (they are git-tracked by exception):
-   ```bash
-   git add AE_ResNet50.pth threshold.npy
-   git commit -m "add trained model and threshold"
-   git push
-   ```
-
-3. **Deploy on Streamlit Cloud:**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Click **New app** → select your GitHub repo
-   - Set **Main file path** to `app.py`
-   - Click **Deploy**
-
-Streamlit Cloud will install `requirements.txt` and `packages.txt` automatically.
 
 ---
 

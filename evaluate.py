@@ -11,7 +11,7 @@ from sklearn.metrics import (
 )
 
 import config
-from dataset import get_transform
+from dataset import get_val_transform
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ def decision_function(segm_map: torch.Tensor) -> torch.Tensor:
     for m in segm_map:
         flat = m.reshape(-1)
         sorted_vals, _ = torch.sort(flat, descending=True)
-        scores.append(sorted_vals[:10].mean())
+        scores.append(sorted_vals[:config.TOP_K_PIXELS].mean())
     return torch.stack(scores)
 
 
@@ -45,11 +45,12 @@ def compute_threshold(model, feat_extractor, train_loader):
         for data, _ in train_loader:
             features = feat_extractor(data.to(config.DEVICE)).squeeze()
             recon = model(features)
-            segm_map = ((features - recon) ** 2).mean(dim=1)[:, 3:-3, 3:-3]
+            c = config.BORDER_CROP
+            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
             all_scores.append(decision_function(segm_map))
 
     recon_errors = torch.cat(all_scores).cpu().numpy()
-    threshold = float(np.mean(recon_errors) + 3 * np.std(recon_errors))
+    threshold = float(np.mean(recon_errors) + config.THRESHOLD_SIGMA * np.std(recon_errors))
 
     plt.hist(recon_errors, bins=50)
     plt.axvline(x=threshold, color='r', label=f'Threshold = {threshold:.4f}')
@@ -72,7 +73,7 @@ def predict(model, feat_extractor, threshold: float):
     """Run inference on the test set and return ground-truth labels, predictions and scores."""
     model.eval()
     feat_extractor.eval()
-    transform = get_transform()
+    transform = get_val_transform()
     test_path = Path(config.TEST_DATA_PATH)
 
     y_true, y_pred, y_score = [], [], []
@@ -83,7 +84,8 @@ def predict(model, feat_extractor, threshold: float):
             image = transform(Image.open(path)).unsqueeze(0).to(config.DEVICE)
             features = feat_extractor(image)
             recon = model(features)
-            segm_map = ((features - recon) ** 2).mean(dim=1)[:, 3:-3, 3:-3]
+            c = config.BORDER_CROP
+            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
             score = decision_function(segm_map)
 
             y_true.append(0 if fault_type == 'good' else 1)
@@ -136,7 +138,7 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
     """Overlay reconstruction-error heatmaps on abnormal test images."""
     model.eval()
     feat_extractor.eval()
-    transform = get_transform()
+    transform = get_val_transform()
     test_path = Path(config.TEST_DATA_PATH)
     heat_map_min = float(np.min(recon_errors))
     heat_map_max = float(np.max(recon_errors))
@@ -153,7 +155,8 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             segm_map = ((features - recon) ** 2).mean(dim=1)
             score = decision_function(segm_map)
 
-            heat_map = cv2.resize(segm_map.squeeze().cpu().numpy(), (128, 128))
+            sz = config.HEATMAP_SIZE
+            heat_map = cv2.resize(segm_map.squeeze().cpu().numpy(), (sz, sz))
 
             plt.figure(figsize=(15, 5))
             plt.subplot(1, 2, 1)
@@ -161,7 +164,7 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             plt.title('Original Abnormal Image')
 
             plt.subplot(1, 2, 2)
-            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max * 10)
+            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max * config.HEATMAP_VMAX_SCALE)
             plt.title(f'Heatmap  |  Score ratio: {score[0].item() / best_threshold:.4f}')
 
             plt.tight_layout()

@@ -11,7 +11,7 @@ import torch
 from PIL import Image
 
 import config
-from dataset import get_transform
+from dataset import get_val_transform
 from evaluate import decision_function
 from models import AutoEncoder, ResnetFeatures
 
@@ -50,7 +50,7 @@ def load_models():
 # ---------------------------------------------------------------------------
 
 def run_inference(model, feat_extractor, image: Image.Image, threshold: float):
-    transform = get_transform()
+    transform = get_val_transform()
     tensor = transform(image.convert('RGB')).unsqueeze(0).to(config.DEVICE)
 
     with torch.no_grad():

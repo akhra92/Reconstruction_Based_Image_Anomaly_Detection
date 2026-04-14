@@ -31,3 +31,18 @@ MODEL_SAVE_PATH = 'AE_ResNet50.pth'
 
 # Plots
 PLOTS_DIR = 'plots'
+
+# Anomaly scoring
+TOP_K_PIXELS = 10           # number of top error pixels used in decision_function
+BORDER_CROP = 3             # pixels to crop from each edge of the segmentation map
+THRESHOLD_SIGMA = 3.0       # std multipliers for initial threshold estimate
+HEATMAP_VMAX_SCALE = 10.0   # vmax = max_training_error * this factor
+HEATMAP_SIZE = 128          # resize heatmap to (HEATMAP_SIZE x HEATMAP_SIZE)
+
+# Data augmentation
+AUG_ROTATION_DEGREES = 15
+AUG_BRIGHTNESS = 0.2
+AUG_CONTRAST = 0.2
+AUG_SATURATION = 0.1
+AUG_ERASING_PROB = 0.1
+AUG_ERASING_SCALE = (0.02, 0.1)

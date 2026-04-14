@@ -10,10 +10,10 @@ def get_train_transform():
         T.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
         T.RandomHorizontalFlip(),
         T.RandomVerticalFlip(),
-        T.RandomRotation(15),
-        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
+        T.RandomRotation(config.AUG_ROTATION_DEGREES),
+        T.ColorJitter(brightness=config.AUG_BRIGHTNESS, contrast=config.AUG_CONTRAST, saturation=config.AUG_SATURATION),
         T.ToTensor(),
-        T.RandomErasing(p=0.1, scale=(0.02, 0.1)),
+        T.RandomErasing(p=config.AUG_ERASING_PROB, scale=config.AUG_ERASING_SCALE),
     ])
 
 

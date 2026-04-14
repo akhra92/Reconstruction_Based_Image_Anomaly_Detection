@@ -99,8 +99,12 @@ def predict(model, feat_extractor, threshold: float):
 # Metrics & plots
 # ---------------------------------------------------------------------------
 
-def plot_roc_and_confusion(y_true, y_score):
-    """Plot ROC curve and confusion matrix; return the F1-optimal threshold."""
+def plot_roc_and_confusion(y_true, y_score, deployed_threshold: float):
+    """Plot ROC curve and confusion matrix using the deployed threshold.
+
+    The F1-optimal threshold derived from the test set is printed for reference
+    only — it is NOT returned or saved, to avoid label leakage.
+    """
     auc = roc_auc_score(y_true, y_score)
     print(f'AUC-ROC: {auc:.4f}')
 
@@ -120,18 +124,17 @@ def plot_roc_and_confusion(y_true, y_score):
     plt.savefig(f'{config.PLOTS_DIR}/roc_curve.png', dpi=150)
     plt.show()
 
+    # Oracle reference only — not used for deployment
     f1_scores = [f1_score(y_true, y_score >= t) for t in thresholds]
-    best_threshold = float(thresholds[np.argmax(f1_scores)])
-    print(f'Best F1 threshold: {best_threshold:.6f}')
+    oracle_threshold = float(thresholds[np.argmax(f1_scores)])
+    print(f'Oracle F1 threshold (test-set only, not saved): {oracle_threshold:.6f}')
 
-    cm = confusion_matrix(y_true, (y_score >= best_threshold).astype(int))
+    cm = confusion_matrix(y_true, (y_score >= deployed_threshold).astype(int))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Normal', 'Abnormal'])
     disp.plot()
     plt.tight_layout()
     plt.savefig(f'{config.PLOTS_DIR}/confusion_matrix.png', dpi=150)
     plt.show()
-
-    return best_threshold
 
 
 def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_errors: np.ndarray):

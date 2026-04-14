@@ -55,14 +55,14 @@ def main():
     # 6. Evaluate on test set
     # ------------------------------------------------------------------ #
     y_true, y_pred, y_score = predict(model, feat_extractor, threshold)
-    best_threshold = plot_roc_and_confusion(y_true, y_score)
-    np.save('threshold.npy', np.array(best_threshold))
+    plot_roc_and_confusion(y_true, y_score, deployed_threshold=threshold)
+    np.save('threshold.npy', np.array(threshold))
     print(f'Threshold saved to threshold.npy')
 
     # ------------------------------------------------------------------ #
     # 7. Visualize heatmaps for abnormal images
     # ------------------------------------------------------------------ #
-    visualize_heatmaps(model, feat_extractor, best_threshold, recon_errors)
+    visualize_heatmaps(model, feat_extractor, threshold, recon_errors)
 
 
 if __name__ == '__main__':

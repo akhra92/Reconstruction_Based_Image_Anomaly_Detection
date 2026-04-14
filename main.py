@@ -31,7 +31,7 @@ def main():
         is_bn=config.IS_BN,
     ).to(config.DEVICE)
 
-    feat_extractor = ResnetFeatures().to(config.DEVICE)
+    feat_extractor = ResnetFeatures(finetune_layers=config.FINETUNE_LAYERS).to(config.DEVICE)
 
     # ------------------------------------------------------------------ #
     # 3. Train

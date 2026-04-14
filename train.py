@@ -10,7 +10,14 @@ import config
 
 def train(model, feat_extractor, train_loader, val_loader):
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
+
+    backbone_params = [p for p in feat_extractor.parameters() if p.requires_grad]
+    param_groups = [{'params': model.parameters(), 'lr': config.LEARNING_RATE}]
+    if backbone_params:
+        param_groups.append({'params': backbone_params, 'lr': config.FINETUNE_LR})
+        print(f'Fine-tuning backbone: {len(backbone_params)} param tensors at lr={config.FINETUNE_LR}')
+
+    optimizer = optim.Adam(param_groups)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, patience=config.SCHEDULER_PATIENCE, factor=config.SCHEDULER_FACTOR
     )
@@ -22,6 +29,7 @@ def train(model, feat_extractor, train_loader, val_loader):
     for epoch in tqdm(range(config.NUM_EPOCHS)):
         # --- Training ---
         model.train()
+        feat_extractor.train()
         for data, _ in train_loader:
             features = feat_extractor(data.to(config.DEVICE))
             output = model(features)
@@ -33,6 +41,7 @@ def train(model, feat_extractor, train_loader, val_loader):
 
         # --- Validation ---
         model.eval()
+        feat_extractor.eval()
         val_loss_sum, num_batches = 0.0, 0
         with torch.no_grad():
             for data, _ in val_loader:

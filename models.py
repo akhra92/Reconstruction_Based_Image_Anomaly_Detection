@@ -4,14 +4,26 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 
 class ResnetFeatures(nn.Module):
-    """Extracts intermediate feature maps from a pretrained ResNet50."""
+    """Extracts intermediate feature maps from a pretrained ResNet50.
 
-    def __init__(self):
+    Args:
+        finetune_layers: sequence of ResNet layer names (e.g. ['layer3']) whose
+                         parameters will be unfrozen for gradient-based fine-tuning.
+                         All other layers remain frozen.
+    """
+
+    def __init__(self, finetune_layers=()):
         super().__init__()
         self.model = resnet50(weights=ResNet50_Weights.DEFAULT)
-        self.model.eval()
+
+        # Freeze entire backbone first
         for param in self.model.parameters():
             param.requires_grad = False
+
+        # Selectively unfreeze requested layers
+        for layer_name in finetune_layers:
+            for param in getattr(self.model, layer_name).parameters():
+                param.requires_grad = True
 
         def hook(module, input, output) -> None:
             self.features.append(output)
@@ -21,8 +33,7 @@ class ResnetFeatures(nn.Module):
 
     def forward(self, x):
         self.features = []
-        with torch.no_grad():
-            _ = self.model(x)
+        self.model(x)  # torch.no_grad() handled by caller (train loop or inference)
 
         avg = nn.AvgPool2d(3, stride=1)
         fmap_size = self.features[0].shape[-2]

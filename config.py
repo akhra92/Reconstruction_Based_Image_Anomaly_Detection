@@ -32,6 +32,10 @@ MODEL_SAVE_PATH = 'AE_ResNet50.pth'
 # Plots
 PLOTS_DIR = 'plots'
 
+# Backbone fine-tuning
+FINETUNE_LAYERS = ['layer3']  # ResNet layers to unfreeze; set to [] to disable fine-tuning
+FINETUNE_LR = 1e-4            # learning rate for backbone params (lower than main LR)
+
 # Anomaly scoring
 TOP_K_PIXELS = 10           # number of top error pixels used in decision_function
 BORDER_CROP = 3             # pixels to crop from each edge of the segmentation map

@@ -21,12 +21,16 @@ Anomaly_Detection/
 ├── app.py                    # Streamlit web app for interactive inference
 ├── api.py                    # FastAPI REST endpoint for system integration
 ├── config.py                 # All hyperparameters and paths
-├── dataset.py                # Transform and DataLoader factory
-├── models.py                 # ResnetFeatures and AutoEncoder
-├── train.py                  # Training loop with early stopping
+├── dataset.py                # Transform and DataLoader factory (train + val augmentation)
+├── models.py                 # ResnetFeatures (with optional fine-tuning) and AutoEncoder
+├── train.py                  # Training loop with early stopping and backbone fine-tuning
 ├── evaluate.py               # Threshold calibration, inference, metrics, heatmaps
 ├── requirements.txt          # Python dependencies
 ├── packages.txt              # System dependencies for Streamlit Cloud
+├── Dockerfile                # FastAPI inference image
+├── Dockerfile.streamlit      # Streamlit web app image
+├── docker-compose.yml        # Orchestrates API + Streamlit services
+├── .dockerignore             # Excludes dataset, plots, and caches from Docker build
 └── .streamlit/
     └── config.toml           # Streamlit theme and upload size config
 ```

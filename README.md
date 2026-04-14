@@ -123,6 +123,34 @@ Response:
 }
 ```
 
+### Docker
+
+Train the model locally first to produce the required artifacts:
+
+```bash
+python main.py          # produces AE_ResNet50.pth and threshold.npy
+```
+
+Then start both services with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+| Service | URL |
+|---------|-----|
+| FastAPI | http://localhost:8000 — API docs at `/docs` |
+| Streamlit | http://localhost:8501 |
+
+To run only one service:
+
+```bash
+docker compose up api        # REST API only
+docker compose up streamlit  # web UI only
+```
+
+The model checkpoint and threshold are mounted as read-only volumes — they are not baked into the image, so you can swap them without rebuilding.
+
 ---
 
 ## Generated Plots

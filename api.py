@@ -43,11 +43,11 @@ async def lifespan(app: FastAPI):
     model.eval()
     feat_extractor.eval()
 
-    threshold = (
-        float(np.load('threshold.npy'))
-        if Path('threshold.npy').exists()
-        else config.THRESHOLD_SIGMA  # fallback — should not happen in practice
-    )
+    if not Path('threshold.npy').exists():
+        raise RuntimeError(
+            'threshold.npy not found. Run `python main.py` first to generate it.'
+        )
+    threshold = float(np.load('threshold.npy'))
 
     _state['model'] = model
     _state['feat_extractor'] = feat_extractor

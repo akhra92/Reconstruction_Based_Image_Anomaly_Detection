@@ -30,6 +30,7 @@ def train(model, feat_extractor, train_loader, val_loader):
         # --- Training ---
         model.train()
         feat_extractor.train()
+        train_loss_sum, num_train_batches = 0.0, 0
         for data, _ in train_loader:
             features = feat_extractor(data.to(config.DEVICE))
             output = model(features)
@@ -37,7 +38,9 @@ def train(model, feat_extractor, train_loader, val_loader):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        train_losses.append(loss.item())
+            train_loss_sum += loss.item()
+            num_train_batches += 1
+        train_losses.append(train_loss_sum / num_train_batches)
 
         # --- Validation ---
         model.eval()
@@ -55,7 +58,7 @@ def train(model, feat_extractor, train_loader, val_loader):
 
         if epoch % 5 == 0:
             print(f'Epoch [{epoch + 1}/{config.NUM_EPOCHS}]  '
-                  f'Train Loss: {loss.item():.4f}  Val Loss: {val_loss_avg:.4f}')
+                  f'Train Loss: {train_losses[-1]:.4f}  Val Loss: {val_loss_avg:.4f}')
 
         # --- Early stopping ---
         if val_loss_avg < best_val_loss:

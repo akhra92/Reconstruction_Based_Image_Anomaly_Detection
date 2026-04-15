@@ -81,7 +81,7 @@ def predict(model, feat_extractor, threshold: float):
     with torch.no_grad():
         for path in test_path.glob('*/*.*'):
             fault_type = path.parts[-2]
-            image = transform(Image.open(path)).unsqueeze(0).to(config.DEVICE)
+            image = transform(Image.open(path).convert('RGB')).unsqueeze(0).to(config.DEVICE)
             features = feat_extractor(image)
             recon = model(features)
             c = config.BORDER_CROP
@@ -152,7 +152,7 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             if fault_type != 'bad':
                 continue
 
-            image = transform(Image.open(path)).unsqueeze(0).to(config.DEVICE)
+            image = transform(Image.open(path).convert('RGB')).unsqueeze(0).to(config.DEVICE)
             features = feat_extractor(image)
             recon = model(features)
             segm_map = ((features - recon) ** 2).mean(dim=1)

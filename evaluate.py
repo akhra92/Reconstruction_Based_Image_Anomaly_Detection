@@ -43,7 +43,7 @@ def compute_threshold(model, feat_extractor, train_loader):
 
     with torch.no_grad():
         for data, _ in train_loader:
-            features = feat_extractor(data.to(config.DEVICE)).squeeze()
+            features = feat_extractor(data.to(config.DEVICE))
             recon = model(features)
             c = config.BORDER_CROP
             segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]

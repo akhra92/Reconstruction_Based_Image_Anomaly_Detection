@@ -86,4 +86,4 @@ def plot_learning_curves(train_losses, val_losses):
     plt.title('Learning Curves')
     plt.tight_layout()
     plt.savefig(f'{config.PLOTS_DIR}/learning_curves.png', dpi=150)
-    plt.show()
+    plt.close()

@@ -60,7 +60,7 @@ def compute_threshold(model, feat_extractor, train_loader):
     plt.legend()
     plt.tight_layout()
     plt.savefig(f'{config.PLOTS_DIR}/threshold_distribution.png', dpi=150)
-    plt.show()
+    plt.close()
 
     return threshold, recon_errors
 
@@ -122,7 +122,7 @@ def plot_roc_and_confusion(y_true, y_score, deployed_threshold: float):
     plt.legend(loc='lower right')
     plt.tight_layout()
     plt.savefig(f'{config.PLOTS_DIR}/roc_curve.png', dpi=150)
-    plt.show()
+    plt.close()
 
     # Oracle reference only — not used for deployment
     f1_scores = [f1_score(y_true, y_score >= t) for t in thresholds]
@@ -134,7 +134,7 @@ def plot_roc_and_confusion(y_true, y_score, deployed_threshold: float):
     disp.plot()
     plt.tight_layout()
     plt.savefig(f'{config.PLOTS_DIR}/confusion_matrix.png', dpi=150)
-    plt.show()
+    plt.close()
 
 
 def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_errors: np.ndarray):
@@ -172,4 +172,4 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
 
             plt.tight_layout()
             plt.savefig(f'{config.PLOTS_DIR}/heatmap_{path.stem}.png', dpi=150)
-            plt.show()
+            plt.close()

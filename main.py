@@ -61,7 +61,7 @@ def main():
     # ------------------------------------------------------------------ #
     # 6. Evaluate on test set
     # ------------------------------------------------------------------ #
-    y_true, y_pred, y_score = predict(model, feat_extractor, threshold)
+    y_true, _, y_score = predict(model, feat_extractor, threshold)
     plot_roc_and_confusion(y_true, y_score, deployed_threshold=threshold)
     np.save('threshold.npy', np.array(threshold))
     print(f'Threshold saved to threshold.npy')

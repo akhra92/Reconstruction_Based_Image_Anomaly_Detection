@@ -109,7 +109,8 @@ def _run_inference(image: Image.Image, include_heatmap: bool) -> dict:
         features = feat_extractor(tensor)
         recon = model(features)
 
-    segm_map = ((features - recon) ** 2).mean(dim=1)
+    c = config.BORDER_CROP
+    segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
     score = decision_function(segm_map).item()
     prediction = 'Abnormal' if score >= threshold else 'Normal'
 

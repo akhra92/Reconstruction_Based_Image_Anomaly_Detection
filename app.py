@@ -40,7 +40,12 @@ def load_models():
         is_bn=config.IS_BN,
     ).to(config.DEVICE)
     model.load_state_dict(torch.load(config.MODEL_SAVE_PATH, map_location=config.DEVICE))
-    if config.FINETUNE_LAYERS and Path(config.BACKBONE_SAVE_PATH).exists():
+    if config.FINETUNE_LAYERS:
+        if not Path(config.BACKBONE_SAVE_PATH).exists():
+            raise RuntimeError(
+                f'Fine-tuned backbone checkpoint not found at {config.BACKBONE_SAVE_PATH!r}. '
+                'Retrain with `python main.py` to generate it.'
+            )
         feat_extractor.load_state_dict(
             torch.load(config.BACKBONE_SAVE_PATH, map_location=config.DEVICE)
         )
@@ -61,7 +66,8 @@ def run_inference(model, feat_extractor, image: Image.Image, threshold: float):
         features = feat_extractor(tensor)
         recon = model(features)
 
-    segm_map = ((features - recon) ** 2).mean(dim=1)
+    c = config.BORDER_CROP
+    segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
     score = decision_function(segm_map).item()
     prediction = 'Abnormal' if score >= threshold else 'Normal'
     heat_map = cv2.resize(segm_map.squeeze().cpu().numpy(), (224, 224))

@@ -15,13 +15,14 @@ class ResnetFeatures(nn.Module):
     def __init__(self, finetune_layers=()):
         super().__init__()
         self.model = resnet50(weights=ResNet50_Weights.DEFAULT)
+        self.finetune_layers = tuple(finetune_layers)
 
         # Freeze entire backbone first
         for param in self.model.parameters():
             param.requires_grad = False
 
         # Selectively unfreeze requested layers
-        for layer_name in finetune_layers:
+        for layer_name in self.finetune_layers:
             for param in getattr(self.model, layer_name).parameters():
                 param.requires_grad = True
 
@@ -30,6 +31,17 @@ class ResnetFeatures(nn.Module):
 
         self.model.layer2[-1].register_forward_hook(hook)
         self.model.layer3[-1].register_forward_hook(hook)
+
+    def train(self, mode: bool = True):
+        # Keep the whole backbone in eval mode (frozen BN running stats),
+        # then flip only the fine-tuned blocks to train mode so their own
+        # BN stats update during fine-tuning.
+        super().train(mode)
+        if mode:
+            self.model.eval()
+            for layer_name in self.finetune_layers:
+                getattr(self.model, layer_name).train()
+        return self
 
     def forward(self, x):
         self.features = []

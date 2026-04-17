@@ -1,187 +1,191 @@
+import warnings
+warnings.filterwarnings('ignore')
+
 from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import seaborn as sns
 from PIL import Image
-from sklearn.metrics import (
-    roc_auc_score, roc_curve,
-    confusion_matrix, ConfusionMatrixDisplay, f1_score,
-)
+from sklearn.metrics import (roc_auc_score, roc_curve, confusion_matrix,
+                             ConfusionMatrixDisplay, f1_score)
 
-import config
-from dataset import get_val_transform
+from config import device, TEST_DIR, SAMPLE_TEST_IMAGE
+from dataset import transform
 
 
-# ---------------------------------------------------------------------------
-# Anomaly scoring
-# ---------------------------------------------------------------------------
-
-def decision_function(segm_map: torch.Tensor) -> torch.Tensor:
-    """Return the mean of the top-10 pixel values per map as the anomaly score."""
-    scores = []
-    for m in segm_map:
-        flat = m.reshape(-1)
-        sorted_vals, _ = torch.sort(flat, descending=True)
-        scores.append(sorted_vals[:config.TOP_K_PIXELS].mean())
-    return torch.stack(scores)
-
-
-# ---------------------------------------------------------------------------
-# Threshold calibration
-# ---------------------------------------------------------------------------
-
-def compute_threshold(model, feat_extractor, train_loader):
-    """Estimate anomaly threshold as mean + 3*std over training reconstruction errors."""
-    from pathlib import Path
-    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
-
-    model.eval()
-    feat_extractor.eval()
-    all_scores = []
+def visualize_single_abnormal(model, feat_extractor, image_path=SAMPLE_TEST_IMAGE):
+    image = Image.open(image_path)
+    image = transform(image).unsqueeze(0)
 
     with torch.no_grad():
-        for data, _ in train_loader:
-            features = feat_extractor(data.to(config.DEVICE))
-            recon = model(features)
-            c = config.BORDER_CROP
-            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
-            all_scores.append(decision_function(segm_map))
+        features = feat_extractor(image.to(device))
+        recon = model(features)
 
-    recon_errors = torch.cat(all_scores).cpu().numpy()
-    threshold = float(np.quantile(recon_errors, config.THRESHOLD_QUANTILE))
+    recon_error = ((features - recon) ** 2).mean(axis=(1)).unsqueeze(0)
 
-    print(
-        f'Training recon errors — '
-        f'min: {recon_errors.min():.4f}  '
-        f'median: {np.median(recon_errors):.4f}  '
-        f'p99: {np.quantile(recon_errors, 0.99):.4f}  '
-        f'max: {recon_errors.max():.4f}  '
-        f'(n={len(recon_errors)})'
+    segm_map = torch.nn.functional.interpolate(     # Upscale by bi-linaer interpolation to match the original input resolution
+        recon_error,
+        size=(224, 224),
+        mode='bilinear'
     )
 
-    plt.hist(recon_errors, bins=50)
-    plt.axvline(x=threshold, color='r', label=f'Threshold = {threshold:.4f}')
-    plt.xlabel('Anomaly Score')
-    plt.ylabel('Count')
-    plt.title('Training Reconstruction Error Distribution')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f'{config.PLOTS_DIR}/threshold_distribution.png', dpi=150)
-    plt.close()
-
-    return threshold, recon_errors
+    plt.imshow(segm_map.squeeze().cpu().numpy(), cmap='jet')
+    plt.show()
 
 
-# ---------------------------------------------------------------------------
-# Inference on test set
-# ---------------------------------------------------------------------------
+def decision_function(segm_map):
 
-def predict(model, feat_extractor, threshold: float):
-    """Run inference on the test set and return ground-truth labels, predictions and scores."""
+    mean_top_10_values = []
+
+    for map in segm_map:
+        flattened_tensor = map.reshape(-1)
+
+        sorted_tensor, _ = torch.sort(flattened_tensor, descending=True)
+
+        mean_top_10_value = sorted_tensor[:10].mean()
+
+        mean_top_10_values.append(mean_top_10_value)
+
+    return torch.stack(mean_top_10_values)
+
+
+def compute_reconstruction_error(model, feat_extractor, train_loader):
+    model.eval()
+
+    RECON_ERROR = []
+    for data, _ in train_loader:
+
+        with torch.no_grad():
+            features = feat_extractor(data.to(device)).squeeze()
+            recon = model(features)
+
+        segm_map = ((features - recon) ** 2).mean(axis=(1))[:, 3:-3, 3:-3]
+        anomaly_score = decision_function(segm_map)
+
+        RECON_ERROR.append(anomaly_score)
+
+    RECON_ERROR = torch.cat(RECON_ERROR).cpu().numpy()
+    return RECON_ERROR
+
+
+def compute_best_threshold(RECON_ERROR):
+    best_threshold = np.mean(RECON_ERROR) + 3 * np.std(RECON_ERROR)
+
+    heat_map_max, heat_map_min = np.max(RECON_ERROR), np.min(RECON_ERROR)
+
+    plt.hist(RECON_ERROR, bins=50)
+    plt.vlines(x=best_threshold, ymin=0, ymax=30, color='r')
+    plt.show()
+
+    return best_threshold, heat_map_max, heat_map_min
+
+
+def predict_test_images(model, feat_extractor, best_threshold, test_dir=TEST_DIR):
+    y_true = []
+    y_pred = []
+    y_score = []
+
     model.eval()
     feat_extractor.eval()
-    transform = get_val_transform()
-    test_path = Path(config.TEST_DATA_PATH)
 
-    y_true, y_pred, y_score = [], [], []
+    test_path = Path(test_dir)
 
-    with torch.no_grad():
-        for path in test_path.glob('*/*.*'):
-            fault_type = path.parts[-2]
-            image = transform(Image.open(path).convert('RGB')).unsqueeze(0).to(config.DEVICE)
-            features = feat_extractor(image)
+    for path in test_path.glob('*/*.*'):
+        fault_type = path.parts[-2]
+        test_image = transform(Image.open(path)).to(device).unsqueeze(0)
+
+        with torch.no_grad():
+            features = feat_extractor(test_image)
             recon = model(features)
-            c = config.BORDER_CROP
-            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
-            score = decision_function(segm_map)
 
-            y_true.append(0 if fault_type == 'good' else 1)
-            y_pred.append(int(score.item() >= threshold))
-            y_score.append(score.item())
+        segm_map = ((features - recon) ** 2).mean(axis=(1))[:, 3:-3, 3:-3]
+        y_score_image = decision_function(segm_map=segm_map)
 
-    return np.array(y_true), np.array(y_pred), np.array(y_score)
+        y_pred_image = 1 * (y_score_image >= best_threshold)
+
+        y_true_image = 0 if fault_type == 'good' else 1
+
+        y_true.append(y_true_image)
+        y_pred.append(y_pred_image.cpu().numpy())
+        y_score.append(y_score_image.cpu().numpy())
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    y_score = np.array(y_score)
+
+    return y_true, y_pred, y_score
 
 
-# ---------------------------------------------------------------------------
-# Metrics & plots
-# ---------------------------------------------------------------------------
+def plot_score_histogram(y_score, best_threshold):
+    plt.hist(y_score, bins=50)
+    plt.vlines(x=best_threshold, ymin=0, ymax=30, color='r')
+    plt.show()
 
-def plot_roc_and_confusion(y_true, y_score, deployed_threshold: float):
-    """Plot ROC curve and confusion matrix using the deployed threshold.
 
-    The F1-optimal threshold derived from the test set is printed for reference
-    only — it is NOT returned or saved, to avoid label leakage.
-    """
-    auc = roc_auc_score(y_true, y_score)
-    print(f'AUC-ROC: {auc:.4f}')
+def plot_roc_and_confusion(y_true, y_score):
+    auc_roc_score = roc_auc_score(y_true, y_score)
+    print("AUC-ROC Score:", auc_roc_score)
 
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
-
-    from pathlib import Path
-    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
-
     plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC (AUC = {auc:.2f})')
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % auc_roc_score)
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve')
-    plt.legend(loc='lower right')
-    plt.tight_layout()
-    plt.savefig(f'{config.PLOTS_DIR}/roc_curve.png', dpi=150)
-    plt.close()
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    plt.show()
 
-    # Oracle reference only — not used for deployment.
-    # sklearn prepends np.inf to `thresholds`; drop it so f1_score doesn't get an all-False vector.
-    finite_thresholds = thresholds[np.isfinite(thresholds)]
-    f1_scores = [f1_score(y_true, y_score >= t) for t in finite_thresholds]
-    oracle_threshold = float(finite_thresholds[np.argmax(f1_scores)])
-    print(f'Oracle F1 threshold (test-set only, not saved): {oracle_threshold:.6f}')
+    f1_scores = [f1_score(y_true, y_score >= threshold) for threshold in thresholds]
 
-    cm = confusion_matrix(y_true, (y_score >= deployed_threshold).astype(int))
+    best_threshold = thresholds[np.argmax(f1_scores)]  # finding best threshold based on f1 scores
+
+    print(f'best_threshold = {best_threshold}')
+
+    cm = confusion_matrix(y_true, (y_score >= best_threshold).astype(int), labels=[0, 1])
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Normal', 'Abnormal'])
     disp.plot()
-    plt.tight_layout()
-    plt.savefig(f'{config.PLOTS_DIR}/confusion_matrix.png', dpi=150)
-    plt.close()
+    plt.show()
+
+    return best_threshold
 
 
-def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_errors: np.ndarray):
-    """Overlay reconstruction-error heatmaps on abnormal test images."""
+def visualize_abnormal_heatmaps(model, feat_extractor, best_threshold, heat_map_min, heat_map_max, test_dir=TEST_DIR):
     model.eval()
     feat_extractor.eval()
-    transform = get_val_transform()
-    test_path = Path(config.TEST_DATA_PATH)
-    heat_map_min = float(np.min(recon_errors))
-    heat_map_max = float(np.quantile(recon_errors, config.HEATMAP_VMAX_QUANTILE))
 
-    with torch.no_grad():
-        for path in test_path.glob('*/*.*'):
-            fault_type = path.parts[-2]
-            if fault_type != 'bad':
-                continue
+    test_path = Path(test_dir)
 
-            image = transform(Image.open(path).convert('RGB')).unsqueeze(0).to(config.DEVICE)
-            features = feat_extractor(image)
+    for path in test_path.glob('*/*.*'):
+        fault_type = path.parts[-2]
+        test_image = transform(Image.open(path)).to(device).unsqueeze(0)
+
+        with torch.no_grad():
+            features = feat_extractor(test_image)
             recon = model(features)
-            c = config.BORDER_CROP
-            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
-            score = decision_function(segm_map)
 
-            sz = config.HEATMAP_SIZE
-            heat_map = cv2.resize(segm_map.squeeze().cpu().numpy(), (sz, sz))
+        segm_map = ((features - recon) ** 2).mean(axis=(1))
+        y_score_image = decision_function(segm_map=segm_map)
+
+        y_pred_image = 1 * (y_score_image >= best_threshold)
+        class_label = ['Normal', 'Abnormal']
+
+        if fault_type in ['bad']:
 
             plt.figure(figsize=(15, 5))
+
             plt.subplot(1, 2, 1)
-            plt.imshow(image.squeeze().permute(1, 2, 0).cpu().numpy())
+            plt.imshow(test_image.squeeze().permute(1, 2, 0).cpu().numpy())
             plt.title('Original Abnormal Image')
 
             plt.subplot(1, 2, 2)
-            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max)
-            plt.title(f'Heatmap  |  Score ratio: {score[0].item() / best_threshold:.4f}')
+            heat_map = segm_map.squeeze().cpu().numpy()
+            heat_map = heat_map
+            heat_map = cv2.resize(heat_map, (128, 128))
+            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max * 10)
+            plt.title(f'Generated Heatmap with Anomaly Score: {y_score_image[0].cpu().numpy() / best_threshold:0.4f}')
 
-            plt.tight_layout()
-            plt.savefig(f'{config.PLOTS_DIR}/heatmap_{path.stem}.png', dpi=150)
-            plt.close()
+            plt.show()

@@ -1,54 +1,23 @@
 import torch
 
-if torch.cuda.is_available():
-    DEVICE = 'cuda'
-elif torch.backends.mps.is_available():
-    DEVICE = 'mps'
-else:
-    DEVICE = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# Dataset
-TRAIN_DATA_PATH = 'dataset/train'
-TEST_DATA_PATH = 'dataset/test'
-IMAGE_SIZE = 224
+TRAIN_DIR = 'dataset/train'
+TEST_DIR = 'dataset/test'
+
+IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 4
-VAL_SPLIT = 0.2
-SPLIT_SEED = 42
+TRAIN_VAL_SPLIT = [0.8, 0.2]
 
-# Model
 IN_CHANNELS = 1536
 LATENT_DIM = 100
-IS_BN = True
 
-# Training
-NUM_EPOCHS = 50
 LEARNING_RATE = 0.001
 SCHEDULER_PATIENCE = 3
 SCHEDULER_FACTOR = 0.5
-EARLY_STOP_PATIENCE = 5
+NUM_EPOCHS = 50
+EARLY_STOPPING_PATIENCE = 5
 
-# Checkpoints
-MODEL_SAVE_PATH = 'AE_ResNet50.pth'
-BACKBONE_SAVE_PATH = 'ResNet50_finetuned.pth'
+CHECKPOINT_PATH = 'AE_ResNet50.pth'
 
-# Plots
-PLOTS_DIR = 'plots'
-
-# Backbone fine-tuning
-FINETUNE_LAYERS = ['layer3']  # ResNet layers to unfreeze; set to [] to disable fine-tuning
-FINETUNE_LR = 1e-4            # learning rate for backbone params (lower than main LR)
-
-# Anomaly scoring
-TOP_K_PIXELS = 10           # number of top error pixels used in decision_function
-BORDER_CROP = 3             # pixels to crop from each edge of the segmentation map
-THRESHOLD_QUANTILE = 0.995  # quantile of training recon errors used as threshold (robust to outliers)
-HEATMAP_VMAX_QUANTILE = 0.99  # quantile of training recon errors used as heatmap vmax
-HEATMAP_SIZE = 128          # resize heatmap to (HEATMAP_SIZE x HEATMAP_SIZE)
-
-# Data augmentation
-AUG_ROTATION_DEGREES = 15
-AUG_BRIGHTNESS = 0.2
-AUG_CONTRAST = 0.2
-AUG_SATURATION = 0.1
-AUG_ERASING_PROB = 0.1
-AUG_ERASING_SCALE = (0.02, 0.1)
+SAMPLE_TEST_IMAGE = r'dataset/test/bad/20221017_T28_C3_S3.png'

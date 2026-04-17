@@ -1,75 +1,44 @@
 import warnings
 warnings.filterwarnings('ignore')
 
-from pathlib import Path
-
-import numpy as np
-import torch
-
-import config
+from config import device, IN_CHANNELS, LATENT_DIM, CHECKPOINT_PATH
 from dataset import get_dataloaders
 from models import AutoEncoder, ResnetFeatures
-from train import train, plot_learning_curves
-from evaluate import (
-    compute_threshold,
-    predict,
-    plot_roc_and_confusion,
-    visualize_heatmaps,
-)
+from train import train, load_model
+from evaluate import (visualize_single_abnormal, compute_reconstruction_error,
+                      compute_best_threshold, predict_test_images,
+                      plot_score_histogram, plot_roc_and_confusion,
+                      visualize_abnormal_heatmaps)
 
 
 def main():
-    # ------------------------------------------------------------------ #
-    # 1. Data
-    # ------------------------------------------------------------------ #
-    train_loader, val_loader, calib_loader = get_dataloaders()
+    # Train the model (saves checkpoint to CHECKPOINT_PATH)
+    model, feat_extractor, train_loader, val_loader = train()
 
-    # ------------------------------------------------------------------ #
-    # 2. Models
-    # ------------------------------------------------------------------ #
-    model = AutoEncoder(
-        in_channels=config.IN_CHANNELS,
-        latent_dim=config.LATENT_DIM,
-        is_bn=config.IS_BN,
-    ).to(config.DEVICE)
+    # Load the trained model
+    model = load_model(model, CHECKPOINT_PATH)
+    print(model)
 
-    feat_extractor = ResnetFeatures(finetune_layers=config.FINETUNE_LAYERS).to(config.DEVICE)
+    # Visualize the abnormal image result (single image)
+    visualize_single_abnormal(model, feat_extractor)
 
-    # ------------------------------------------------------------------ #
-    # 3. Train
-    # ------------------------------------------------------------------ #
-    train_losses, val_losses = train(model, feat_extractor, train_loader, val_loader)
-    plot_learning_curves(train_losses, val_losses)
+    # Calculate reconstruction error on training data
+    RECON_ERROR = compute_reconstruction_error(model, feat_extractor, train_loader)
 
-    # ------------------------------------------------------------------ #
-    # 4. Load best checkpoint
-    # ------------------------------------------------------------------ #
-    model.load_state_dict(torch.load(config.MODEL_SAVE_PATH, map_location=config.DEVICE))
-    model.eval()
-    if config.FINETUNE_LAYERS and Path(config.BACKBONE_SAVE_PATH).exists():
-        feat_extractor.load_state_dict(
-            torch.load(config.BACKBONE_SAVE_PATH, map_location=config.DEVICE)
-        )
-    feat_extractor.eval()
+    # Compute the initial best threshold (mean + 3*std)
+    best_threshold, heat_map_max, heat_map_min = compute_best_threshold(RECON_ERROR)
 
-    # ------------------------------------------------------------------ #
-    # 5. Calibrate threshold on training data
-    # ------------------------------------------------------------------ #
-    threshold, recon_errors = compute_threshold(model, feat_extractor, calib_loader)
-    print(f'Anomaly threshold (q={config.THRESHOLD_QUANTILE}): {threshold:.6f}')
+    # Predict on test images
+    y_true, y_pred, y_score = predict_test_images(model, feat_extractor, best_threshold)
 
-    # ------------------------------------------------------------------ #
-    # 6. Evaluate on test set
-    # ------------------------------------------------------------------ #
-    y_true, _, y_score = predict(model, feat_extractor, threshold)
-    plot_roc_and_confusion(y_true, y_score, deployed_threshold=threshold)
-    np.save('threshold.npy', np.array(threshold))
-    print(f'Threshold saved to threshold.npy')
+    # Visualize the predicted anomaly score histogram with the best threshold
+    plot_score_histogram(y_score, best_threshold)
 
-    # ------------------------------------------------------------------ #
-    # 7. Visualize heatmaps for abnormal images
-    # ------------------------------------------------------------------ #
-    visualize_heatmaps(model, feat_extractor, threshold, recon_errors)
+    # ROC curve, F1-based best threshold and confusion matrix
+    best_threshold = plot_roc_and_confusion(y_true, y_score)
+
+    # Visualize abnormal test images with heatmaps
+    visualize_abnormal_heatmaps(model, feat_extractor, best_threshold, heat_map_min, heat_map_max)
 
 
 if __name__ == '__main__':

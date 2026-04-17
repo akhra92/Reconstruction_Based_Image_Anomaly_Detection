@@ -1,44 +1,19 @@
-import torch
 import torchvision.transforms as T
+from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, Subset
 
-import config
-
-
-def get_train_transform():
-    return T.Compose([
-        T.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
-        T.RandomHorizontalFlip(),
-        T.RandomVerticalFlip(),
-        T.RandomRotation(config.AUG_ROTATION_DEGREES),
-        T.ColorJitter(brightness=config.AUG_BRIGHTNESS, contrast=config.AUG_CONTRAST, saturation=config.AUG_SATURATION),
-        T.ToTensor(),
-        T.RandomErasing(p=config.AUG_ERASING_PROB, scale=config.AUG_ERASING_SCALE),
-    ])
+from config import TRAIN_DIR, IMAGE_SIZE, BATCH_SIZE, TRAIN_VAL_SPLIT
 
 
-def get_val_transform():
-    return T.Compose([
-        T.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
-        T.ToTensor(),
-    ])
+transform = T.Compose([T.Resize(IMAGE_SIZE),
+                       T.ToTensor()])
 
 
-def get_dataloaders():
-    train_dataset = ImageFolder(root=config.TRAIN_DATA_PATH, transform=get_train_transform())
-    val_dataset = ImageFolder(root=config.TRAIN_DATA_PATH, transform=get_val_transform())
+def get_dataloaders(root=TRAIN_DIR, batch_size=BATCH_SIZE, split=TRAIN_VAL_SPLIT):
+    dataset = ImageFolder(root=root, transform=transform)
+    trn_dataset, val_dataset = random_split(dataset, split)
 
-    n_total = len(train_dataset)
-    n_val = int(n_total * config.VAL_SPLIT)
-    n_train = n_total - n_val
+    train_loader = DataLoader(trn_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
-    generator = torch.Generator().manual_seed(config.SPLIT_SEED)
-    perm = torch.randperm(n_total, generator=generator).tolist()
-    train_indices = perm[:n_train]
-    val_indices = perm[n_train:n_train + n_val]
-
-    train_loader = DataLoader(Subset(train_dataset, train_indices), batch_size=config.BATCH_SIZE, shuffle=True)
-    val_loader = DataLoader(Subset(val_dataset, val_indices), batch_size=config.BATCH_SIZE, shuffle=False)
-    calib_loader = DataLoader(Subset(val_dataset, train_indices), batch_size=config.BATCH_SIZE, shuffle=False)
-    return train_loader, val_loader, calib_loader
+    return train_loader, val_loader

@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore')
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -5,87 +8,92 @@ from torch import optim
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-import config
+from config import (device, IN_CHANNELS, LATENT_DIM, LEARNING_RATE,
+                    SCHEDULER_PATIENCE, SCHEDULER_FACTOR, NUM_EPOCHS,
+                    EARLY_STOPPING_PATIENCE, CHECKPOINT_PATH)
+from dataset import get_dataloaders
+from models import AutoEncoder, ResnetFeatures
 
 
-def train(model, feat_extractor, train_loader, val_loader):
+def train():
+    train_loader, val_loader = get_dataloaders()
+
+    model = AutoEncoder(in_channels=IN_CHANNELS, latent_dim=LATENT_DIM).to(device)
+    feat_extractor = ResnetFeatures().to(device)
+
     criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=SCHEDULER_PATIENCE, factor=SCHEDULER_FACTOR)
 
-    backbone_params = [p for p in feat_extractor.parameters() if p.requires_grad]
-    param_groups = [{'params': model.parameters(), 'lr': config.LEARNING_RATE}]
-    if backbone_params:
-        param_groups.append({'params': backbone_params, 'lr': config.FINETUNE_LR})
-        print(f'Fine-tuning backbone: {len(backbone_params)} param tensors at lr={config.FINETUNE_LR}')
-
-    optimizer = optim.Adam(param_groups)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=config.SCHEDULER_PATIENCE, factor=config.SCHEDULER_FACTOR
-    )
-
-    train_losses, val_losses = [], []
+    Train_Loss = []
+    Validation_Loss = []
     best_val_loss = np.inf
-    patience_counter = 0
+    patience = EARLY_STOPPING_PATIENCE
+    counter = 0
 
-    for epoch in tqdm(range(config.NUM_EPOCHS)):
-        # --- Training ---
+    num_epochs = NUM_EPOCHS
+    for epoch in tqdm(range(num_epochs)):
         model.train()
-        feat_extractor.train()
-        train_loss_sum, num_train_batches = 0.0, 0
         for data, _ in train_loader:
-            features = feat_extractor(data.to(config.DEVICE))
+            with torch.no_grad():
+                features = feat_extractor(data.to(device))
             output = model(features)
             loss = criterion(output, features)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            train_loss_sum += loss.item()
-            num_train_batches += 1
-        train_losses.append(train_loss_sum / num_train_batches)
+        Train_Loss.append(loss.item())
 
-        # --- Validation ---
         model.eval()
-        feat_extractor.eval()
-        val_loss_sum, num_batches = 0.0, 0
         with torch.no_grad():
+            val_loss_sum = 0.0
+            num_batches = 0
             for data, _ in val_loader:
-                features = feat_extractor(data.to(config.DEVICE))
+                features = feat_extractor(data.to(device))
                 output = model(features)
-                val_loss_sum += criterion(output, features).item()
+                val_loss = criterion(output, features)
+                val_loss_sum += val_loss.item()
                 num_batches += 1
-        val_loss_avg = val_loss_sum / num_batches
-        val_losses.append(val_loss_avg)
-        scheduler.step(val_loss_avg)
+            val_loss_avg = val_loss_sum / num_batches
+
+            scheduler.step(val_loss_avg)
+            Validation_Loss.append(val_loss_avg)
 
         if epoch % 5 == 0:
-            print(f'Epoch [{epoch + 1}/{config.NUM_EPOCHS}]  '
-                  f'Train Loss: {train_losses[-1]:.4f}  Val Loss: {val_loss_avg:.4f}')
+            print('Epoch [{}/{}], Loss: {:.4f}, Validation Loss: {:.4f}'.format(
+                epoch + 1, num_epochs, loss.item(), val_loss_avg))
 
-        # --- Early stopping ---
         if val_loss_avg < best_val_loss:
             best_val_loss = val_loss_avg
-            patience_counter = 0
-            torch.save(model.state_dict(), config.MODEL_SAVE_PATH)
-            if backbone_params:
-                torch.save(feat_extractor.state_dict(), config.BACKBONE_SAVE_PATH)
+            counter = 0
         else:
-            patience_counter += 1
-            if patience_counter >= config.EARLY_STOP_PATIENCE:
-                print('Early stopping triggered.')
+            counter += 1
+            if counter >= patience:
+                print('Early Stopping!')
                 break
 
-    return train_losses, val_losses
+    plot_learning_curves(Train_Loss, Validation_Loss)
+
+    torch.save(model.state_dict(), CHECKPOINT_PATH)
+
+    return model, feat_extractor, train_loader, val_loader
 
 
-def plot_learning_curves(train_losses, val_losses):
-    from pathlib import Path
-    Path(config.PLOTS_DIR).mkdir(exist_ok=True)
-
-    plt.plot(train_losses, label='Training Loss')
-    plt.plot(val_losses, label='Validation Loss')
+def plot_learning_curves(Train_Loss, Validation_Loss):
+    plt.plot(Train_Loss, label='Training Loss')
+    plt.plot(Validation_Loss, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.title('Learning Curves')
-    plt.tight_layout()
-    plt.savefig(f'{config.PLOTS_DIR}/learning_curves.png', dpi=150)
-    plt.close()
+    plt.show()
+
+
+def load_model(model, path=CHECKPOINT_PATH):
+    ckpoints = torch.load(path)
+    model.load_state_dict(ckpoints)
+    model.eval()
+    return model
+
+
+if __name__ == '__main__':
+    train()

@@ -41,8 +41,8 @@ FINETUNE_LR = 1e-4            # learning rate for backbone params (lower than ma
 # Anomaly scoring
 TOP_K_PIXELS = 10           # number of top error pixels used in decision_function
 BORDER_CROP = 3             # pixels to crop from each edge of the segmentation map
-THRESHOLD_SIGMA = 3.0       # std multipliers for initial threshold estimate
-HEATMAP_VMAX_SCALE = 10.0   # vmax = max_training_error * this factor
+THRESHOLD_QUANTILE = 0.995  # quantile of training recon errors used as threshold (robust to outliers)
+HEATMAP_VMAX_QUANTILE = 0.99  # quantile of training recon errors used as heatmap vmax
 HEATMAP_SIZE = 128          # resize heatmap to (HEATMAP_SIZE x HEATMAP_SIZE)
 
 # Data augmentation

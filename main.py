@@ -56,7 +56,7 @@ def main():
     # 5. Calibrate threshold on training data
     # ------------------------------------------------------------------ #
     threshold, recon_errors = compute_threshold(model, feat_extractor, calib_loader)
-    print(f'Anomaly threshold (mean + 3σ): {threshold:.6f}')
+    print(f'Anomaly threshold (q={config.THRESHOLD_QUANTILE}): {threshold:.6f}')
 
     # ------------------------------------------------------------------ #
     # 6. Evaluate on test set

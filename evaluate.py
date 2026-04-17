@@ -50,7 +50,16 @@ def compute_threshold(model, feat_extractor, train_loader):
             all_scores.append(decision_function(segm_map))
 
     recon_errors = torch.cat(all_scores).cpu().numpy()
-    threshold = float(np.mean(recon_errors) + config.THRESHOLD_SIGMA * np.std(recon_errors))
+    threshold = float(np.quantile(recon_errors, config.THRESHOLD_QUANTILE))
+
+    print(
+        f'Training recon errors — '
+        f'min: {recon_errors.min():.4f}  '
+        f'median: {np.median(recon_errors):.4f}  '
+        f'p99: {np.quantile(recon_errors, 0.99):.4f}  '
+        f'max: {recon_errors.max():.4f}  '
+        f'(n={len(recon_errors)})'
+    )
 
     plt.hist(recon_errors, bins=50)
     plt.axvline(x=threshold, color='r', label=f'Threshold = {threshold:.4f}')
@@ -146,7 +155,7 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
     transform = get_val_transform()
     test_path = Path(config.TEST_DATA_PATH)
     heat_map_min = float(np.min(recon_errors))
-    heat_map_max = float(np.max(recon_errors))
+    heat_map_max = float(np.quantile(recon_errors, config.HEATMAP_VMAX_QUANTILE))
 
     with torch.no_grad():
         for path in test_path.glob('*/*.*'):
@@ -170,7 +179,7 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             plt.title('Original Abnormal Image')
 
             plt.subplot(1, 2, 2)
-            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max * config.HEATMAP_VMAX_SCALE)
+            plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max)
             plt.title(f'Heatmap  |  Score ratio: {score[0].item() / best_threshold:.4f}')
 
             plt.tight_layout()

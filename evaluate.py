@@ -124,9 +124,11 @@ def plot_roc_and_confusion(y_true, y_score, deployed_threshold: float):
     plt.savefig(f'{config.PLOTS_DIR}/roc_curve.png', dpi=150)
     plt.close()
 
-    # Oracle reference only — not used for deployment
-    f1_scores = [f1_score(y_true, y_score >= t) for t in thresholds]
-    oracle_threshold = float(thresholds[np.argmax(f1_scores)])
+    # Oracle reference only — not used for deployment.
+    # sklearn prepends np.inf to `thresholds`; drop it so f1_score doesn't get an all-False vector.
+    finite_thresholds = thresholds[np.isfinite(thresholds)]
+    f1_scores = [f1_score(y_true, y_score >= t) for t in finite_thresholds]
+    oracle_threshold = float(finite_thresholds[np.argmax(f1_scores)])
     print(f'Oracle F1 threshold (test-set only, not saved): {oracle_threshold:.6f}')
 
     cm = confusion_matrix(y_true, (y_score >= deployed_threshold).astype(int))

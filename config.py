@@ -28,6 +28,7 @@ EARLY_STOP_PATIENCE = 5
 
 # Checkpoints
 MODEL_SAVE_PATH = 'AE_ResNet50.pth'
+BACKBONE_SAVE_PATH = 'ResNet50_finetuned.pth'
 
 # Plots
 PLOTS_DIR = 'plots'

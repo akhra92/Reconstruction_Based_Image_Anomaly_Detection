@@ -33,13 +33,17 @@ THRESHOLD_PATH = 'threshold.npy'
 
 @st.cache_resource
 def load_models():
-    feat_extractor = ResnetFeatures().to(config.DEVICE)
+    feat_extractor = ResnetFeatures(finetune_layers=config.FINETUNE_LAYERS).to(config.DEVICE)
     model = AutoEncoder(
         in_channels=config.IN_CHANNELS,
         latent_dim=config.LATENT_DIM,
         is_bn=config.IS_BN,
     ).to(config.DEVICE)
     model.load_state_dict(torch.load(config.MODEL_SAVE_PATH, map_location=config.DEVICE))
+    if config.FINETUNE_LAYERS and Path(config.BACKBONE_SAVE_PATH).exists():
+        feat_extractor.load_state_dict(
+            torch.load(config.BACKBONE_SAVE_PATH, map_location=config.DEVICE)
+        )
     model.eval()
     feat_extractor.eval()
     return model, feat_extractor

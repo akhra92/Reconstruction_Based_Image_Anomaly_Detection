@@ -65,6 +65,8 @@ def train(model, feat_extractor, train_loader, val_loader):
             best_val_loss = val_loss_avg
             patience_counter = 0
             torch.save(model.state_dict(), config.MODEL_SAVE_PATH)
+            if backbone_params:
+                torch.save(feat_extractor.state_dict(), config.BACKBONE_SAVE_PATH)
         else:
             patience_counter += 1
             if patience_counter >= config.EARLY_STOP_PATIENCE:

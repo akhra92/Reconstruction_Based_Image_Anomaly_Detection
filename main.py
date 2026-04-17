@@ -1,6 +1,8 @@
 import warnings
 warnings.filterwarnings('ignore')
 
+from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -44,6 +46,11 @@ def main():
     # ------------------------------------------------------------------ #
     model.load_state_dict(torch.load(config.MODEL_SAVE_PATH, map_location=config.DEVICE))
     model.eval()
+    if config.FINETUNE_LAYERS and Path(config.BACKBONE_SAVE_PATH).exists():
+        feat_extractor.load_state_dict(
+            torch.load(config.BACKBONE_SAVE_PATH, map_location=config.DEVICE)
+        )
+    feat_extractor.eval()
 
     # ------------------------------------------------------------------ #
     # 5. Calibrate threshold on training data

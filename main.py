@@ -22,7 +22,7 @@ def main():
     # ------------------------------------------------------------------ #
     # 1. Data
     # ------------------------------------------------------------------ #
-    train_loader, val_loader = get_dataloaders()
+    train_loader, val_loader, calib_loader = get_dataloaders()
 
     # ------------------------------------------------------------------ #
     # 2. Models
@@ -55,7 +55,7 @@ def main():
     # ------------------------------------------------------------------ #
     # 5. Calibrate threshold on training data
     # ------------------------------------------------------------------ #
-    threshold, recon_errors = compute_threshold(model, feat_extractor, train_loader)
+    threshold, recon_errors = compute_threshold(model, feat_extractor, calib_loader)
     print(f'Anomaly threshold (mean + 3σ): {threshold:.6f}')
 
     # ------------------------------------------------------------------ #

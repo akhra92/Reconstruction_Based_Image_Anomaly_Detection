@@ -1,6 +1,7 @@
+import torch
 import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Subset
 
 import config
 
@@ -25,14 +26,17 @@ def get_val_transform():
 
 
 def get_dataloaders():
-    full_dataset = ImageFolder(root=config.TRAIN_DATA_PATH, transform=None)
-    n_total = len(full_dataset)
-    n_val = int(n_total * config.VAL_SPLIT)
-    n_train = n_total - n_val
-    train_indices, val_indices = random_split(range(n_total), [n_train, n_val])
-
     train_dataset = ImageFolder(root=config.TRAIN_DATA_PATH, transform=get_train_transform())
     val_dataset = ImageFolder(root=config.TRAIN_DATA_PATH, transform=get_val_transform())
+
+    n_total = len(train_dataset)
+    n_val = int(n_total * config.VAL_SPLIT)
+    n_train = n_total - n_val
+
+    generator = torch.Generator().manual_seed(config.SPLIT_SEED)
+    perm = torch.randperm(n_total, generator=generator).tolist()
+    train_indices = perm[:n_train]
+    val_indices = perm[n_train:n_train + n_val]
 
     train_loader = DataLoader(Subset(train_dataset, train_indices), batch_size=config.BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(Subset(val_dataset, val_indices), batch_size=config.BATCH_SIZE, shuffle=False)

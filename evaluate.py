@@ -155,7 +155,8 @@ def visualize_heatmaps(model, feat_extractor, best_threshold: float, recon_error
             image = transform(Image.open(path).convert('RGB')).unsqueeze(0).to(config.DEVICE)
             features = feat_extractor(image)
             recon = model(features)
-            segm_map = ((features - recon) ** 2).mean(dim=1)
+            c = config.BORDER_CROP
+            segm_map = ((features - recon) ** 2).mean(dim=1)[:, c:-c, c:-c]
             score = decision_function(segm_map)
 
             sz = config.HEATMAP_SIZE

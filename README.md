@@ -2,6 +2,8 @@
 
 Anomaly detection using a pretrained ResNet50 feature extractor combined with a 1×1 convolutional AutoEncoder. Intermediate feature maps from `layer2` and `layer3` of ResNet50 are reconstructed by the AutoEncoder; the pixel-wise reconstruction error is used as an anomaly score.
 
+**[Live Demo on Streamlit Cloud]()**
+
 ## Project Structure
 
 ```
@@ -30,7 +32,7 @@ dataset/
 ## Installation
 
 ```bash
-pip install torch torchvision numpy pillow matplotlib seaborn scikit-learn opencv-python tqdm
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -45,6 +47,18 @@ Or train only:
 
 ```bash
 python train.py
+```
+
+## Streamlit
+
+An interactive demo is provided in `app.py`. Upload an image to see the anomaly
+heatmap and prediction; if no image is uploaded, the app falls back to the
+bundled sample at `sample_images/default.png`.
+
+Run locally:
+
+```bash
+streamlit run app.py
 ```
 
 ## Method

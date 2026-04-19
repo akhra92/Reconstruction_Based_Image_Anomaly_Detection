@@ -31,7 +31,15 @@ class ResnetFeatures(nn.Module):
         fmap_size = self.features[0].shape[-2]         # Feature map sizes h, w
         self.resize = torch.nn.AdaptiveAvgPool2d(fmap_size)
 
-        resized_maps = [self.resize(self.avg(fmap)) for fmap in self.features]
+        resized_maps = []
+        for fmap in self.features:
+            pooled = self.avg(fmap)
+            if pooled.device.type == 'mps':
+                # MPS doesn't support non-divisible adaptive avg pool; run on CPU
+                resized = self.resize(pooled.cpu()).to(pooled.device)
+            else:
+                resized = self.resize(pooled)
+            resized_maps.append(resized)
         patch = torch.cat(resized_maps, 1)            # Merge the resized feature maps
 
         return patch

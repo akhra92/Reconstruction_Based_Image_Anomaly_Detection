@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore')
 
+import os
 from pathlib import Path
 
 import cv2
@@ -12,7 +13,7 @@ from PIL import Image
 from sklearn.metrics import (roc_auc_score, roc_curve, confusion_matrix,
                              ConfusionMatrixDisplay, f1_score)
 
-from config import device, TEST_DIR, SAMPLE_TEST_IMAGE
+from config import device, TEST_DIR, SAMPLE_TEST_IMAGE, ASSETS_DIR
 from dataset import transform
 
 
@@ -32,8 +33,11 @@ def visualize_single_abnormal(model, feat_extractor, image_path=SAMPLE_TEST_IMAG
         mode='bilinear'
     )
 
+    plt.figure()
     plt.imshow(segm_map.squeeze().cpu().numpy(), cmap='jet')
+    plt.savefig(os.path.join(ASSETS_DIR, 'single_abnormal_segmap.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
 
 def decision_function(segm_map):
@@ -76,9 +80,12 @@ def compute_best_threshold(RECON_ERROR):
 
     heat_map_max, heat_map_min = np.max(RECON_ERROR), np.min(RECON_ERROR)
 
+    plt.figure()
     plt.hist(RECON_ERROR, bins=50)
     plt.vlines(x=best_threshold, ymin=0, ymax=30, color='r')
+    plt.savefig(os.path.join(ASSETS_DIR, 'recon_error_hist.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
     return best_threshold, heat_map_max, heat_map_min
 
@@ -120,9 +127,12 @@ def predict_test_images(model, feat_extractor, best_threshold, test_dir=TEST_DIR
 
 
 def plot_score_histogram(y_score, best_threshold):
+    plt.figure()
     plt.hist(y_score, bins=50)
     plt.vlines(x=best_threshold, ymin=0, ymax=30, color='r')
+    plt.savefig(os.path.join(ASSETS_DIR, 'score_hist.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
 
 def plot_roc_and_confusion(y_true, y_score):
@@ -137,7 +147,9 @@ def plot_roc_and_confusion(y_true, y_score):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver Operating Characteristic (ROC) Curve')
     plt.legend(loc="lower right")
+    plt.savefig(os.path.join(ASSETS_DIR, 'roc_curve.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
     f1_scores = [f1_score(y_true, y_score >= threshold) for threshold in thresholds]
 
@@ -148,7 +160,9 @@ def plot_roc_and_confusion(y_true, y_score):
     cm = confusion_matrix(y_true, (y_score >= best_threshold).astype(int), labels=[0, 1])
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Normal', 'Abnormal'])
     disp.plot()
+    plt.savefig(os.path.join(ASSETS_DIR, 'confusion_matrix.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
     return best_threshold
 
@@ -188,4 +202,6 @@ def visualize_abnormal_heatmaps(model, feat_extractor, best_threshold, heat_map_
             plt.imshow(heat_map, cmap='jet', vmin=heat_map_min, vmax=heat_map_max * 10)
             plt.title(f'Generated Heatmap with Anomaly Score: {y_score_image[0].cpu().numpy() / best_threshold:0.4f}')
 
+            plt.savefig(os.path.join(ASSETS_DIR, f'heatmap_{path.stem}.png'), bbox_inches='tight')
             plt.show()
+            plt.close()

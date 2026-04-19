@@ -8,9 +8,11 @@ from torch import optim
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
+import os
+
 from config import (device, IN_CHANNELS, LATENT_DIM, LEARNING_RATE,
                     SCHEDULER_PATIENCE, SCHEDULER_FACTOR, NUM_EPOCHS,
-                    EARLY_STOPPING_PATIENCE, CHECKPOINT_PATH)
+                    EARLY_STOPPING_PATIENCE, CHECKPOINT_PATH, ASSETS_DIR)
 from dataset import get_dataloaders
 from models import AutoEncoder, ResnetFeatures
 
@@ -80,12 +82,15 @@ def train():
 
 
 def plot_learning_curves(Train_Loss, Validation_Loss):
+    plt.figure()
     plt.plot(Train_Loss, label='Training Loss')
     plt.plot(Validation_Loss, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
+    plt.savefig(os.path.join(ASSETS_DIR, 'learning_curves.png'), bbox_inches='tight')
     plt.show()
+    plt.close()
 
 
 def load_model(model, path=CHECKPOINT_PATH):

@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 
@@ -30,3 +32,6 @@ EARLY_STOPPING_PATIENCE = 5
 CHECKPOINT_PATH = 'AE_ResNet50.pth'
 
 SAMPLE_TEST_IMAGE = r'dataset/test/bad/20221017_T28_C3_S3.png'
+
+ASSETS_DIR = 'assets'
+os.makedirs(ASSETS_DIR, exist_ok=True)

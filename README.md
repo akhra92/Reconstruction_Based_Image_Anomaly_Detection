@@ -2,7 +2,7 @@
 
 Anomaly detection using a pretrained ResNet50 feature extractor combined with a 1×1 convolutional AutoEncoder. Intermediate feature maps from `layer2` and `layer3` of ResNet50 are reconstructed by the AutoEncoder; the pixel-wise reconstruction error is used as an anomaly score.
 
-**[Live Demo on Streamlit Cloud]()**
+**[Live Demo on Streamlit Cloud](https://reconstructionbasedimageanomalydetection.streamlit.app/)**
 
 ## Project Structure
 

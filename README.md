@@ -1,4 +1,4 @@
-# AI-based Anomaly Detection
+# Reconstruction-based Anomaly Detection
 
 Anomaly detection using a pretrained ResNet50 feature extractor combined with a 1×1 convolutional AutoEncoder. Intermediate feature maps from `layer2` and `layer3` of ResNet50 are reconstructed by the AutoEncoder; the pixel-wise reconstruction error is used as an anomaly score.
 

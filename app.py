@@ -14,7 +14,7 @@ from models import AutoEncoder, ResnetFeatures
 
 
 DEFAULT_IMAGE_PATH = 'sample_images/default.png'
-DEFAULT_THRESHOLD = 1.0
+DEFAULT_THRESHOLD = 0.3
 
 
 @st.cache_resource(show_spinner='Loading model...')
@@ -67,12 +67,21 @@ def main():
         'ResNet50 feature maps reconstructed by a 1×1 conv AutoEncoder — '
         'per-pixel reconstruction error drives the anomaly score.'
     )
+    st.markdown(
+        '**How to use:** Upload a surface-inspection image (PNG / JPG / JPEG, up to 20 MB.)'
+    )
 
     model, feat_extractor = load_models()
 
     with st.sidebar:
         st.header('Settings')
-        uploaded = st.file_uploader('Upload an image', type=['png', 'jpg', 'jpeg'])
+        uploaded = st.file_uploader(
+            'Upload an image',
+            type=['png', 'jpg', 'jpeg'],
+            help=(
+                'Upload a surface-inspection image (PNG / JPG / JPEG, up to 20 MB.)'
+            ),
+        )
         threshold = st.slider(
             'Anomaly threshold',
             min_value=0.0,

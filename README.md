@@ -99,7 +99,11 @@ python train.py
 ### Sample Anomaly Heatmaps
 
 <!-- TODO: add example heatmap overlays on abnormal test images -->
-![Anomaly Heatmap](assets/heatmap_example.png)
+![Anomaly Heatmap 1](assets/heatmap_1.png)
+
+![Anomaly Heatmap 2](assets/heatmap_2.png)
+
+![Anomaly Heatmap 3](assets/heatmap_3.png)
 
 ## Output Artifacts
 

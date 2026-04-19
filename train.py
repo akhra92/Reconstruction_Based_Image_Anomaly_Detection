@@ -94,7 +94,7 @@ def plot_learning_curves(Train_Loss, Validation_Loss):
 
 
 def load_model(model, path=CHECKPOINT_PATH):
-    ckpoints = torch.load(path)
+    ckpoints = torch.load(path, map_location=device)
     model.load_state_dict(ckpoints)
     model.eval()
     return model
